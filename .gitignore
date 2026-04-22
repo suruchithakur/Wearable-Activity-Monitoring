@@ -1,0 +1,20 @@
+# Large datasets
+data/
+
+# Python temporary files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Pickled data (Exclude data files but keep trained models)
+data/*.pkl
+!models/*.pkl
+
+# PNG plots and logs
+*.png
+*.log
+
+# OS-specific files
+.DS_Store
+Thumbs.db
