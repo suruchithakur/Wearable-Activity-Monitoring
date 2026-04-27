@@ -109,7 +109,7 @@ def _segment_activity(mag, fs, window_sec=3.0):
         energy = np.std(w_filtered)
 
         # Active if energy is above threshold (standing/cycling have low walk-band energy)
-        if energy > 0.15:
+        if energy > 0.18: # Slightly more conservative
             is_active[start:end] = True
 
     # Handle remaining samples
@@ -147,8 +147,8 @@ def count_steps(recording, watch_loc=None):
 
     # Adjust parameters based on watch location
     if watch_loc == 2:  # Ankle - strongest step signal
-        height_factor = 0.2
-        min_dist_sec = 0.25
+        height_factor = 0.22
+        min_dist_sec = 0.28
     elif watch_loc == 1:  # Belt - moderate signal
         height_factor = 0.15
         min_dist_sec = 0.3
@@ -162,7 +162,7 @@ def count_steps(recording, watch_loc=None):
     # Method 1: Peak detection on active segments
     filtered = _bandpass(active_signal, fs, low=0.5, high=5.0)
     sig_std = np.std(filtered)
-    height_thresh = max(0.05, sig_std * height_factor)
+    height_thresh = max(0.06, sig_std * height_factor)
     min_dist = max(int(min_dist_sec * fs), 1)
 
     peaks, _ = find_peaks(filtered, height=height_thresh, distance=min_dist)
