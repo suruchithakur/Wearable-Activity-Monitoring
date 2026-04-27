@@ -110,6 +110,14 @@ def _freq_domain_features(signal, fs, prefix):
     psd_norm = psd_norm[psd_norm > 0]
     features[f'{prefix}_spec_entropy'] = -np.sum(psd_norm * np.log2(psd_norm + 1e-10))
 
+    # Spectral roll-off (captures high-frequency jitter/surface texture)
+    cumsum_psd = np.cumsum(f_vals**2)
+    total_psd = cumsum_psd[-1] if len(cumsum_psd) > 0 else 0
+    if total_psd > 0:
+        features[f'{prefix}_spec_rolloff'] = freqs[np.where(cumsum_psd >= 0.85 * total_psd)[0][0]]
+    else:
+        features[f'{prefix}_spec_rolloff'] = 0
+
     # Welch PSD for more robust frequency estimation
     try:
         nperseg = min(256, len(signal) // 2)
@@ -383,9 +391,19 @@ def extract_features(recording):
         features['heading_std'] = np.std(heading)
         heading_changes = np.abs(np.diff(heading))
         # Handle wraparound
-        heading_changes = np.minimum(heading_changes, 2 * np.pi - heading_changes)
+        heading_changes = np.where(heading_changes > np.pi, 2*np.pi - heading_changes, heading_changes)
         features['heading_total_change'] = np.sum(heading_changes)
         features['heading_change_rate'] = np.mean(heading_changes)
+
+        # Segmented Heading Profile (dividing path into 5 parts to capture the "turn signature")
+        n_segs = 5
+        seg_len = len(heading) // n_segs
+        if seg_len > 0:
+            for i in range(n_segs):
+                seg_h = heading[i*seg_len : (i+1)*seg_len]
+                # Use circular mean components for heading
+                features[f'heading_seg_{i}_sin'] = np.mean(np.sin(seg_h))
+                features[f'heading_seg_{i}_cos'] = np.mean(np.cos(seg_h))
 
     # ============================================================
     # 4. PHONE SENSORS (allowed: gravity, orientation, pressure, linear accel, rotation)

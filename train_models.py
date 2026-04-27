@@ -98,16 +98,30 @@ def train():
     print("  Saved models/loc_model.pkl")
 
     # ================================================================
-    # 3. PATH INDEX CLASSIFICATION
+    # 3. PATH INDEX CLASSIFICATION (Ensemble)
     # ================================================================
     print("\n" + "=" * 60)
-    print("3. PATH INDEX")
+    print("3. PATH INDEX (Ensemble: RF + ExtraTrees + GBT)")
     print("=" * 60)
     y_path = df['path_idx'].astype(int)
     print(f"  Distribution: {dict(y_path.value_counts().sort_index())}")
 
-    path_model = make_rf(n_estimators=500)
-    evaluate_cv(path_model, X, y_path, 'Path Index')
+    from sklearn.ensemble import VotingClassifier, ExtraTreesClassifier, GradientBoostingClassifier
+
+    rf_path = make_rf(n_estimators=500)
+    et_path = ExtraTreesClassifier(n_estimators=500, min_samples_split=4, min_samples_leaf=2, random_state=42, n_jobs=-1)
+    gb_path = GradientBoostingClassifier(n_estimators=200, learning_rate=0.05, max_depth=5, subsample=0.8, random_state=42)
+
+    path_model = VotingClassifier(
+        estimators=[
+            ('rf', rf_path),
+            ('et', et_path),
+            ('gb', gb_path)
+        ],
+        voting='soft'
+    )
+
+    evaluate_cv(path_model, X, y_path, 'Path Index Ensemble')
     path_model.fit(X, y_path)
     joblib.dump(path_model, 'models/path_model.pkl')
     print("  Saved models/path_model.pkl")
