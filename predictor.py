@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 from feature_extractor import extract_features
 from step_counter import count_steps
+# Imported so pickle can resolve the classes when loading path_model.pkl.
+from train_path_model import PathClassifier, TwoStagePathClassifier, PrefixZeroVsTwoRefiner  # noqa: F401
 
 
 class CompetitionPredictor:
@@ -52,8 +54,8 @@ class CompetitionPredictor:
         # 4. Watch Location
         watch_loc = int(self.loc_model.predict(X)[0])
 
-        # 5. Path Index
-        path_idx = int(self.path_model.predict(X)[0])
+        # 5. Path Index — operates on the raw Recording, not on tabular X
+        path_idx = self.path_model.predict_one(recording)
 
         # 6. Step Count
         # Count steps if walking or running is predicted (or both)
